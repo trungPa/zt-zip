@@ -56,6 +56,18 @@ public class DirectoryTraversalMaliciousTest extends TestCase {
    */
   private static final File badFileBackslashes = new File("src/test/resources/zip-malicious-traversal-backslashes.zip");
 
+  /*
+   * This is the contents of the file. There is one evil file that tries to get out of the
+   * target.
+   *
+   * $ unzip -t zip-malicious-traversal-same-prefix.zip
+   * Archive:  zip-malicious-traversal-same-prefix.zip
+   * testing: good.txt OK
+   * testing: ../foobar/evil.txt OK
+   * No errors detected in compressed data of zip-malicious-traversal-same-prefix.zip.
+   */
+  private static final File badFileSamePrefix = new File("src/test/resources/zip-malicious-traversal-same-prefix.zip");
+
   public void testUnpackDoesntLeaveTarget() throws Exception {
     File file = File.createTempFile("temp", null);
     File tmpDir = file.getParentFile();
@@ -88,6 +100,21 @@ public class DirectoryTraversalMaliciousTest extends TestCase {
 
     try {
       ZipUtil.iterate(badFileBackslashes, new ZipUtil.BackslashUnpacker(tmpDir));
+      fail();
+    }
+    catch (MaliciousZipException e) {
+      assertTrue(true);
+    }
+  }
+
+  public void testSamePrefixDoesntLeaveTarget() throws Exception {
+    File file = File.createTempFile("temp", null);
+    File tmpDir = file.getParentFile();
+    // foobar/evil.txt has the same prefix with the target foo
+    File target = new File(tmpDir, "foo");
+    try {
+      ZipUtil.unpack(badFileSamePrefix, target);
+      // evil.txt should not be unpacked to tmpDir/foobar/evil.txt
       fail();
     }
     catch (MaliciousZipException e) {
